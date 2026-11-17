@@ -16,7 +16,29 @@ Everything below documents only what differs from the Pimalaya standards.
 
 The development environment is managed by [Nix flakes](https://nixos.wiki/wiki/Flakes). Running `nix develop` spawns a shell with everything pinned: a stable Rust toolchain carrying the four Android ABI targets, `cargo-ndk`, the Android SDK and NDK, JDK 17, Gradle and `jdt-language-server`.
 
-If you do not want to use Nix, provide these yourself: the Android SDK (platform 35, build-tools 36.1.0) and NDK 29, JDK 17, Gradle, plus a Rust toolchain (>= `v1.88`) with the `aarch64-linux-android`, `armv7-linux-androideabi`, `x86_64-linux-android` and `i686-linux-android` targets and `cargo-ndk`.
+If you do not want to use Nix, provide these yourself: the Android SDK (platform 36, build-tools 36.1.0) and NDK 29.0.14206865, JDK 17, plus a Rust toolchain (>= `v1.89`) with the `aarch64-linux-android`, `armv7-linux-androideabi`, `x86_64-linux-android` and `i686-linux-android` targets and `cargo-ndk`. The wrapper in `android/` downloads Gradle 8.13 and verifies its distribution checksum.
+
+### Windows and Android Studio
+
+1. Install JDK 17, Rust through rustup, and Visual Studio Build Tools with the **Desktop development with C++** workload and Windows SDK. Set `JAVA_HOME` to JDK 17, `ANDROID_HOME` to your Android SDK, and ensure `%USERPROFILE%\.cargo\bin` is on `PATH`.
+2. Install Android SDK platform 36, build-tools 36.1.0 and NDK 29.0.14206865 through Android Studio's SDK Manager (enable **Show Package Details**).
+3. In a terminal, run:
+
+   ```powershell
+   rustup target add aarch64-linux-android armv7-linux-androideabi x86_64-linux-android i686-linux-android
+   cargo install cargo-ndk --locked
+   ```
+
+4. Restart Android Studio after installing tools or changing environment variables. Open the repository's **android/** directory as the project, not the repository root. Select JDK 17 for Gradle and let Gradle sync finish. SDK paths belong in the ignored `android/local.properties`.
+5. Use the **debug** build variant and the Android App run configuration for module `app`. If Studio does not create it automatically, add one through **Run > Edit Configurations > + > Android App**. Select a device or emulator and run. The first build cross-compiles Rust for all four ABIs and can take several minutes.
+
+The same build from PowerShell at the repository root is:
+
+```powershell
+.\android\gradlew.bat -p android :app:assembleDebug --console=plain
+```
+
+APKs are under `android/app/build/outputs/apk/debug/`; `app-universal-debug.apk` contains all four ABIs. JVM store tests still require the Nix-provided host SQLite library and run through the existing Nix commands below; Windows APK assembly does not bypass those test safeguards.
 
 ## Architecture
 
